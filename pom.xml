@@ -107,6 +107,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<finalName>psl-sync-dashboard</finalName>
 	</build>
 
 </project>
