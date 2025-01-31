@@ -1,39 +1,46 @@
 package com.example.Login.dto;
 
+import com.example.Login.enums.Status;
+
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class WebhookPayload {
-    private String eventType;
-    private String payload;
+    private Status eventStatus;
+    private List<Long> productIds;
     private LocalDateTime receivedAt;
 
     public WebhookPayload() {
         this.receivedAt = LocalDateTime.now();
     }
 
-    public WebhookPayload(String eventType, String payload) {
-        this.eventType = eventType;
-        this.payload = payload;
+    public WebhookPayload(Status eventStatus, List<Long> productIds) {
+        this.eventStatus = eventStatus;
+        this.productIds = productIds;
         this.receivedAt = LocalDateTime.now();
     }
 
-    public String getEventType() {
-        return eventType;
+    public Status getEventStatus() {
+        return eventStatus;
     }
 
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
+    public void setEventStatus(Status eventStatus) {
+        this.eventStatus = eventStatus;
     }
 
-    public String getPayload() {
-        return payload;
+    public List<Long> getProductId() {
+        return productIds;
     }
 
-    public void setPayload(String payload) {
-        this.payload = payload;
+    public void setProductId(List<Long> productIds) {
+        this.productIds = productIds;
     }
 
     public LocalDateTime getReceivedAt() {
         return receivedAt;
+    }
+
+    public void setReceivedAt(LocalDateTime receivedAt) {
+        this.receivedAt = receivedAt;
     }
 }

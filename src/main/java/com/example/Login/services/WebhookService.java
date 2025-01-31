@@ -7,6 +7,7 @@ import com.example.Login.repo.WebhookRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,72 +26,68 @@ public class WebhookService {
         this.restTemplate = new RestTemplate();
         this.jdbcTemplate = jdbcTemplate;
     }
+
     public Webhook registerWebhook(String eventName, String eventKey) {
         Webhook webhook = new Webhook(eventName, eventKey);
         this.createTable(sanitizeTableName(webhook.getEventKey()));
         return webhookRepository.save(webhook);
     }
+
     public List<Webhook> getAllWebhooks() {
         return webhookRepository.findAll();
     }
-    public boolean triggerWebhook(String eventKey, WebhookApiPayload payload) {
-        Optional<Webhook> webhookOpt = webhookRepository.findAll()
-                .stream()
-                .filter(webhook -> webhook.getEventKey().equals(eventKey))
-                .findFirst();
 
-        if (webhookOpt.isPresent()) {
-            Webhook webhook = webhookOpt.get();
-            try {
-                WebhookPayload webhookPayload = new WebhookPayload(
-                        payload.getEventType(),
-                        payload.getPayload()
-                );
+    public boolean triggerWebhook(WebhookApiPayload payload) {
+        try {
+            long lengthOfProductIds = payload.getProductId().stream().count();
+            String productIdsString = payload.getProductId().stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
 
-                storeWebhookData(sanitizeTableName(webhook.getEventKey()), webhookPayload);
-                return true;
-            } catch (Exception e) {
-                System.err.println("Webhook call failed: " + e.getMessage());
-                return false;
-            }
+            String insertQuery = "INSERT INTO " + sanitizeTableName(payload.getEventKey()) + " (event_status, payload, count) VALUES ('" + payload.getEventStatus() + "', '" + productIdsString + "', " + lengthOfProductIds + ");";
+            jdbcTemplate.update(insertQuery);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Webhook call failed: " + e.getMessage());
+            return false;
         }
-        return false;
     }
+
     private String sanitizeTableName(String eventKey) {
         return eventKey.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase();
     }
-    public void storeWebhookData(String eventKey, WebhookPayload payload) {
-        String tableName = sanitizeTableName(eventKey);
-        String formattedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String sql = "INSERT INTO  " + tableName + "  (event_type, payload, received_at) " +
-                "VALUES ('"+payload.getEventType()+"', '"+payload.getPayload()+"','"+formattedTime+"');";
-        jdbcTemplate.update(sql);
-    }
+
     public void createTable(String tableName) {
         String sql = "CREATE TABLE IF NOT EXISTS "+tableName+" (\n" +
-                "    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n" +
-                "    event_type VARCHAR(255) NOT NULL,\n" +
+                "    id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+                "    event_status VARCHAR(10) NOT NULL,\n" +
                 "    payload TEXT NOT NULL,\n" +
+                "    count INTEGER NOT NULL,\n" +
                 "    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n" +
-                ");\n";
+                ");";
         jdbcTemplate.execute(sql);
     }
 
     public long getWebhookCountLastMinute(String tableName) {
-        String sql = "SELECT COUNT(*) FROM "+tableName+" WHERE received_at >= ?";
+        String sql = "SELECT COUNT(*) FROM " + tableName ;
         LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
         String formattedTime = oneMinuteAgo.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        return jdbcTemplate.queryForObject(sql, new Object[]{formattedTime}, Long.class);
+        return jdbcTemplate.queryForObject(sql, Long.class);
     }
 
-    public  Map<String, Object> getLastDayData(String tableName){
+    public Map<String, Object> getLastDayData(String tableName) {
         String sql = "SELECT \n" +
-                "    strftime('%m/%d', received_at) AS day, \n" +
-                "    COUNT(*) AS total_count \n" +
-                "FROM "+tableName+" \n" +
-                "WHERE received_at >= datetime('now', '-6 days')\n" +
-                "GROUP BY day\n" +
-                "ORDER BY day ASC;\n";
+                "    strftime('%m/%d', received_at) AS day,\n" +
+                "    COUNT(*) AS total_count,\n" +
+                "    SUM(COUNT(*)) OVER (ORDER BY strftime('%m/%d', received_at)) AS cumulative_sum\n" +
+                "FROM \n" +
+                "    "+tableName+"\n" +
+                "WHERE \n" +
+                "    received_at >= datetime('now', '-6 days')\n" +
+                "GROUP BY \n" +
+                "    day\n" +
+                "ORDER BY \n" +
+                "    day ASC";
 
         List<Map<String, Object>> results = jdbcTemplate.queryForList(sql);
 
@@ -109,7 +106,7 @@ public class WebhookService {
                 .collect(Collectors.toList()));
 
         return response;
-        }
+    }
 
     public static List<String> getLast7Days() {
         List<String> last7Days;

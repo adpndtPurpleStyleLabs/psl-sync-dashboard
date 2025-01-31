@@ -1,7 +1,8 @@
 package com.example.Login.controller;
 
-import com.example.Login.dto.WebhookPayload;
+import com.example.Login.model.Dashboard;
 import com.example.Login.model.Webhook;
+import com.example.Login.repo.DashboardRepository;
 import com.example.Login.services.WebhookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,9 @@ public class WebHookController {
     @Autowired
     private WebhookService webhookService;
 
+    @Autowired
+    private DashboardRepository dashboardRepository;
+
     @GetMapping("/new")
     public String showWebhookForm(Model model) {
         model.addAttribute("webhook", new Webhook());
@@ -25,8 +29,9 @@ public class WebHookController {
 
     @PostMapping("/register")
     public String registerWebhook(@ModelAttribute Webhook webhook) {
+        dashboardRepository.save(new Dashboard(webhook.getEventName(), webhook.getEventKey().toLowerCase()));
         webhookService.registerWebhook(webhook.getEventName(), webhook.getEventKey());
-        return "redirect:/webhooks/new";
+        return "redirect:/index";
     }
 
     @GetMapping

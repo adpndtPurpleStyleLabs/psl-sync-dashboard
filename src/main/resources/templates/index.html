@@ -62,10 +62,8 @@
 </nav>
 <div class="sidebar">
     <h4>Menu</h4>
-    <ul class="nav flex-column">
-        <li class="nav-item"><a class="nav-link text-white" href="/index/product_sync">Product Sync</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="/index/algolia_sync">Algolia Sync</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="/index/vue_ai">VueAi Sync</a></li>
+    <ul id="dashboardList" class="nav flex-column">
+
         <li class="nav-item"><a class="nav-link text-white" href="/index/test_key_2">Test</a></li>
         <li class="nav-item"><a class="nav-link text-white" href="/webhooks/new">Create New Dashboard</a></li>
     </ul>
@@ -218,6 +216,29 @@
         document.getElementById("filter-id").addEventListener("keyup", filterTable);
         document.getElementById("filter-month").addEventListener("keyup", filterTable);
         document.getElementById("filter-sales").addEventListener("keyup", filterTable);
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch("/dashboard/dashboards")
+            .then(response => response.json())
+            .then(data => {
+                let dashboardList = document.getElementById("dashboardList");
+
+                // Clear dynamically loaded items (keep default items)
+                let defaultItems = dashboardList.innerHTML;
+
+                // Append dynamically fetched dashboards
+                let dynamicItems = "";
+                data.forEach(dashboard => {
+                    dynamicItems += `<li class="nav-item">
+                                            <a class="nav-link text-white" href="/index/${dashboard.webhookKey}">
+                                                ${dashboard.dashboardName}
+                                            </a>
+                                         </li>`;
+                });
+
+                dashboardList.innerHTML = defaultItems + dynamicItems;
+            })
+            .catch(error => console.error("Error fetching dashboards:", error));
     });
 </script>
 

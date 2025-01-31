@@ -24,9 +24,9 @@ public class LoginSontroller {
     }
 
     @GetMapping("/index")
-    public String home(Model model) {
-        long count = webhookService.getWebhookCountLastMinute("test_key_2");
-        model.addAttribute("webhookCountLastMinute", count);
+    public String home(  Model model) {
+//        long count = webhookService.getWebhookCountLastMinute(aa);
+        model.addAttribute("webhookCountLastMinute", "count");
         return "index";
     }
 

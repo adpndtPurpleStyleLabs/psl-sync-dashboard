@@ -54,7 +54,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                 {
                     authorizationManagerRequestMatcherRegistry
-                            .requestMatchers("req/signup", "/css/**", "/js/**", "/trigger/**", "/webhook-stats/**").permitAll();
+                            .requestMatchers("req/signup", "/css/**", "/js/**", "/trigger/**", "/webhook-stats/**", "/dashboard/**").permitAll();
                     authorizationManagerRequestMatcherRegistry
                             .anyRequest()
                             .authenticated();
