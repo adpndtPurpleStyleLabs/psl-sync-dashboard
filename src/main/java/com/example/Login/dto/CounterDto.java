@@ -1,39 +1,43 @@
 package com.example.Login.dto;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Locale;
+
 public class CounterDto {
-    public int liveCounter;
-    public int passedCount;
-    public int failedCount;
+    public String liveCounter;
+    public String passedCount;
+    public String failedCount;
 
     public CounterDto(){}
 
-    public CounterDto(int liveCounter, int passedCount, int failedCount) {
+    public CounterDto(String liveCounter, String passedCount, String failedCount) {
         this.liveCounter = liveCounter;
         this.passedCount = passedCount;
         this.failedCount = failedCount;
     }
 
-    public int getLiveCounter() {
+    public String getLiveCounter() {
         return liveCounter;
     }
 
-    public void setLiveCounter(int liveCounter) {
+    public void setLiveCounter(String liveCounter) {
         this.liveCounter = liveCounter;
     }
 
-    public int getPassedCount() {
+    public String getPassedCount() {
         return passedCount;
     }
 
-    public void setPassedCount(int passedCount) {
+    public void setPassedCount(String passedCount) {
         this.passedCount = passedCount;
     }
 
-    public int getFailedCount() {
+    public String getFailedCount() {
         return failedCount;
     }
 
-    public void setFailedCount(int failedCount) {
+    public void setFailedCount(String failedCount) {
         this.failedCount = failedCount;
     }
 }

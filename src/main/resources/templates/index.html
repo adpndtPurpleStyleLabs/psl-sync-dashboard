@@ -75,7 +75,7 @@
             <div class="col-md-4">
                 <div class="card shadow mb-4">
                     <div class="card-body">
-                        <h4>Total Requests:</h4>
+                        <h4>Total Products Synced:</h4>
                         <span id="totalRequests" class="counter-box text-primary">0</span>
                     </div>
                 </div>
@@ -84,7 +84,7 @@
             <div class="col-md-4">
                 <div class="card shadow mb-4">
                     <div class="card-body">
-                        <h4>Failed Requests:</h4>
+                        <h4>Product Failed:</h4>
                         <span id="failedRequests" class="counter-box text-danger">0</span>
                     </div>
                 </div>
@@ -123,6 +123,7 @@
                     <tr>
                         <th>#</th>
                         <th>DateTime</th>
+                        <th>Status</th>
                         <th>ProductIds</th>
                     </tr>
                     </thead>
@@ -170,18 +171,20 @@
         var lastSegment = pathSegments[pathSegments.length - 1];
         let searchQuery = document.getElementById("searchInput").value;
         const rowsPerPage = document.getElementById("pageSize").value;
-        fetch(`/trigger/search/`+lastSegment+`?page=${currentPage}&size=${rowsPerPage}&productId=${searchQuery}`)
+        fetch(`/trigger/search/` + lastSegment + `?page=${currentPage}&size=${rowsPerPage}&productId=${searchQuery}`)
             .then(response => response.json())
             .then(data => {
                 let tableBody = document.getElementById("salesTable");
                 tableBody.innerHTML = "";
 
                 data.forEach((item, index) => {
+                    let statusClass = item.status === "FAILED" ? "text-danger" : "";
                     let row = `<tr>
-                        <td>${(currentPage - 1) * rowsPerPage + index + 1}</td>
-                        <td>${item.receivedAt}</td>
-                        <td>${item.listOfProductIds}</td>
-                    </tr>`;
+                                    <td>${(currentPage - 1) * rowsPerPage + index + 1}</td>
+                                    <td class="${statusClass}" >${item.receivedAt}</td>
+                                    <td class="${statusClass}">${item.status}</td>
+                                    <td class="${statusClass}" >${item.listOfProductIds}</td>
+                                 </tr>`;
                     tableBody.innerHTML += row;
                 });
 

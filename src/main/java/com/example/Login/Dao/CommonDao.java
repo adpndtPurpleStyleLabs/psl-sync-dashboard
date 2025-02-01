@@ -100,7 +100,8 @@ public class CommonDao {
                           
                     SELECT
                     received_at AS receivedAt,
-                    payload AS productIds
+                    payload AS productIds,
+                    event_status As status
                 FROM
                     @tableName
                 ORDER BY
@@ -115,7 +116,8 @@ public class CommonDao {
         String sql = """
                 SELECT 
                       received_at AS receivedAt, 
-                      payload AS productIds
+                      payload AS productIds,
+                      event_status As status
                   FROM 
                       @tableName
                   WHERE 
@@ -131,7 +133,8 @@ public class CommonDao {
     private RowMapper<SearchDto> mapSearchDto() {
         return (rs, rowNum) -> new SearchDto(
                 rs.getString("receivedAt"),
-                rs.getString("productIds")
+                rs.getString("productIds"),
+                rs.getString("status")
         );
     }
 

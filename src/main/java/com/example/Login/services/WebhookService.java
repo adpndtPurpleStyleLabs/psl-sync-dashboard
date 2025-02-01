@@ -7,8 +7,10 @@ import com.example.Login.repo.WebhookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class WebhookService {
@@ -30,11 +32,20 @@ public class WebhookService {
 
     public boolean triggerWebhook(WebhookApiPayload payload) {
         try {
-            long lengthOfProductIds = payload.getProductId().stream().count();
-            String productIdsString = payload.getProductId().stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(","));
-            commonDao.triggerWebhook(payload, productIdsString, lengthOfProductIds);
+            List<Integer> productIds = payload.getProductId();
+            int chunkSize = 5;
+
+            List<List<Integer>> chunks = IntStream.range(0, (productIds.size() + chunkSize - 1) / chunkSize)
+                    .mapToObj(i -> productIds.subList(i * chunkSize, Math.min((i + 1) * chunkSize, productIds.size())))
+                    .collect(Collectors.toList());
+
+            for (List<Integer> chunk : chunks) {
+                long lengthOfChunk = chunk.size();
+                String productIdsString = chunk.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                commonDao.triggerWebhook(payload, productIdsString, lengthOfChunk);
+            }
             return true;
         } catch (Exception e) {
             System.err.println("Webhook call failed: " + e.getMessage());
@@ -45,10 +56,10 @@ public class WebhookService {
     public CounterDto getWebhookCountLastMinute(String tableName, String timeRate) {
         String rate = timeRate.trim().replaceAll("\\D", "");
         String liveRateQuery = timeRate.toLowerCase().contains("m") ? "minutes" : "seconds";
-        Integer liveCount = commonDao.getLiveSyncProductCount(tableName, rate, liveRateQuery);
-        Integer passedCount = commonDao.getDayProductCountWithStatus(tableName, "PASSED");
-        Integer failedCount = commonDao.getDayProductCountWithStatus(tableName, "FAILED");
-        return new CounterDto(liveCount, passedCount, failedCount);
+        NumberFormat formatter = NumberFormat.getInstance(Locale.US);
+        return new CounterDto( formatter.format(commonDao.getLiveSyncProductCount(tableName, rate, liveRateQuery)),
+                formatter.format(commonDao.getDayProductCountWithStatus(tableName, "PASSED")),
+                formatter.format(commonDao.getDayProductCountWithStatus(tableName, "FAILED")));
     }
 
     public List<DayWiseCountDto> getLastDayData(String tableName) {
