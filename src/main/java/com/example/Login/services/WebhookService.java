@@ -1,35 +1,26 @@
 package com.example.Login.services;
 
-import com.example.Login.dto.WebhookApiPayload;
-import com.example.Login.dto.WebhookPayload;
+import com.example.Login.Dao.CommonDao;
+import com.example.Login.dto.*;
 import com.example.Login.model.Webhook;
 import com.example.Login.repo.WebhookRepository;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class WebhookService {
-    private final WebhookRepository webhookRepository;
-    private final RestTemplate restTemplate;
-    private final JdbcTemplate jdbcTemplate;
+    @Autowired
+    private WebhookRepository webhookRepository;
 
-    public WebhookService(WebhookRepository webhookRepository
-            , JdbcTemplate jdbcTemplate) {
-        this.webhookRepository = webhookRepository;
-        this.restTemplate = new RestTemplate();
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    @Autowired
+    private CommonDao commonDao;
 
     public Webhook registerWebhook(String eventName, String eventKey) {
         Webhook webhook = new Webhook(eventName, eventKey);
-        this.createTable(sanitizeTableName(webhook.getEventKey()));
+        commonDao.createATable(webhook.getEventKey());
         return webhookRepository.save(webhook);
     }
 
@@ -43,9 +34,7 @@ public class WebhookService {
             String productIdsString = payload.getProductId().stream()
                     .map(String::valueOf)
                     .collect(Collectors.joining(","));
-
-            String insertQuery = "INSERT INTO " + sanitizeTableName(payload.getEventKey()) + " (event_status, payload, count) VALUES ('" + payload.getEventStatus() + "', '" + productIdsString + "', " + lengthOfProductIds + ");";
-            jdbcTemplate.update(insertQuery);
+            commonDao.triggerWebhook(payload, productIdsString, lengthOfProductIds);
             return true;
         } catch (Exception e) {
             System.err.println("Webhook call failed: " + e.getMessage());
@@ -53,70 +42,32 @@ public class WebhookService {
         }
     }
 
-    private String sanitizeTableName(String eventKey) {
-        return eventKey.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase();
+    public CounterDto getWebhookCountLastMinute(String tableName, String timeRate) {
+        String rate = timeRate.trim().replaceAll("\\D", "");
+        String liveRateQuery = timeRate.toLowerCase().contains("m") ? "minutes" : "seconds";
+        Integer liveCount = commonDao.getLiveSyncProductCount(tableName, rate, liveRateQuery);
+        Integer passedCount = commonDao.getDayProductCountWithStatus(tableName, "PASSED");
+        Integer failedCount = commonDao.getDayProductCountWithStatus(tableName, "FAILED");
+        return new CounterDto(liveCount, passedCount, failedCount);
     }
 
-    public void createTable(String tableName) {
-        String sql = "CREATE TABLE IF NOT EXISTS "+tableName+" (\n" +
-                "    id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
-                "    event_status VARCHAR(10) NOT NULL,\n" +
-                "    payload TEXT NOT NULL,\n" +
-                "    count INTEGER NOT NULL,\n" +
-                "    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n" +
-                ");";
-        jdbcTemplate.execute(sql);
+    public List<DayWiseCountDto> getLastDayData(String tableName) {
+        return commonDao.getWeekData(tableName);
     }
 
-    public long getWebhookCountLastMinute(String tableName) {
-        String sql = "SELECT COUNT(*) FROM " + tableName ;
-        LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
-        String formattedTime = oneMinuteAgo.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        return jdbcTemplate.queryForObject(sql, Long.class);
-    }
-
-    public Map<String, Object> getLastDayData(String tableName) {
-        String sql = "SELECT \n" +
-                "    strftime('%m/%d', received_at) AS day,\n" +
-                "    COUNT(*) AS total_count,\n" +
-                "    SUM(COUNT(*)) OVER (ORDER BY strftime('%m/%d', received_at)) AS cumulative_sum\n" +
-                "FROM \n" +
-                "    "+tableName+"\n" +
-                "WHERE \n" +
-                "    received_at >= datetime('now', '-6 days')\n" +
-                "GROUP BY \n" +
-                "    day\n" +
-                "ORDER BY \n" +
-                "    day ASC";
-
-        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql);
-
-        Map<String, Integer> salesMap = results.stream()
-                .collect(Collectors.toMap(
-                        row -> row.get("day").toString(),
-                        row -> Integer.parseInt(row.get("total_count").toString())
-                ));
-
-        Map<String, Object> response = new HashMap<>();
-        List<String> last7Days = getLast7Days();
-
-        response.put("labels", last7Days);
-        response.put("sales", last7Days.stream()
-                .map(day -> salesMap.getOrDefault(day, 0))
-                .collect(Collectors.toList()));
-
-        return response;
-    }
-
-    public static List<String> getLast7Days() {
-        List<String> last7Days;
-        last7Days = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd");
-        for (int i = 0; i < 7; i++) {
-            Calendar cal = Calendar.getInstance();
-            cal.add(Calendar.DATE, -i);
-            last7Days.add(sdf.format(cal.getTime()));
+    public List<SearchDto> getSyncedProductIds(String tableName , int page, int size, String productId) {
+        if (productId == null || productId == "") {
+            return commonDao.getSyncedProductIds(tableName, page, size);
         }
-        return last7Days;
+        return commonDao.getSyncedProductIdsWithSearch(tableName, page, size, productId);
+    }
+
+    public boolean removeWebhook(String eventKey) {
+        try{
+            commonDao.deleteWebhook(eventKey);
+            return true;
+        } catch (Exception ex){
+            return false;
+        }
     }
 }

@@ -1,0 +1,31 @@
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/nav.css}">
+</head>
+<nav class="sidebar d-flex flex-column flex-shrink-0 position-fixed">
+    <button class="toggle-btn" onclick="toggleSidebar()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <div class="p-4">
+        <h4 class="logo-text fw-bold mb-0">NexusFlow</h4>
+        <p class="text-muted small hide-on-collapse">Dashboard</p>
+    </div>
+
+    <div class="nav flex-column">
+        <!-- Thymeleaf Loop for Sidebar Menu Items -->
+        <a th:each="item : ${menuItems}"
+           th:href="@{${item.link}}"
+           class="sidebar-link text-decoration-none p-3">
+            <i th:classappend="'fas ' + ${item.icon} + ' me-3'"></i>
+            <span class="hide-on-collapse" th:text="${item.name}"></span>
+        </a>
+    </div>
+</nav>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.toggle('collapsed');
+    }
+</script>
