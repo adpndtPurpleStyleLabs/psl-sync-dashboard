@@ -51,6 +51,7 @@ public class SQLiteWriteWorker {
                     AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
                     if (jsonMsg == null)
                         continue;
+
                     saveToDatabase(tableName, jsonMsg.getValue());
                     System.out.println("Left " +tableName + "messages "+ writeQueue.getQueueSize(tableName));
                 } catch (InterruptedException e) {
@@ -59,7 +60,7 @@ public class SQLiteWriteWorker {
                     submitWorkerTask(tableName);
                     break;
                 } catch (Exception e) {
-                    System.out.println(" Error in saveToDatabase: " + e.getMessage());
+                    System.out.println(" Error in saveToDatabase: " + e.getMessage() + e.getStackTrace());
                     e.printStackTrace();
                 }
             }
@@ -87,7 +88,7 @@ public class SQLiteWriteWorker {
             }
         try {
             writeQueue.addToQueue(tableName, productInfoBulk);
-            System.err.println("🔄 Data Re-added to Queue for Retry: " + tableName);
+            System.err.println("Data Re-added to Queue for Retry: " + tableName);
         } catch (InterruptedException ignored) {}
     }
 }
