@@ -37,7 +37,9 @@ public class SQLiteWriteWorker {
             while (true) {
                 try {
                     AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
+
                     saveToDatabase(tableName, jsonMsg.getValue());
+                    System.out.println("Left " +tableName + "messages "+ writeQueue.getQueueSize(tableName));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.err.println("Worker thread interrupted, restarting...");
