@@ -31,7 +31,7 @@ public class CommonDao {
     public void createAPidTable(String tableName) {
         String sql = """
             CREATE TABLE IF NOT EXISTS @tableName (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY, 
                 jsonData TEXT NOT NULL,
                 receivedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
