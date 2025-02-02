@@ -2,8 +2,10 @@ package com.example.Login.services.QueueWorker;
 
 import com.example.Login.dto.ProductInfo;
 import com.example.Login.services.Oueue.SQLiteWriteQueue;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
@@ -23,6 +25,16 @@ public class SQLiteWriteWorker {
 
     private final ConcurrentHashMap<String, ExecutorService> workerPools = new ConcurrentHashMap<>();
 
+    @PostConstruct
+    public void init() {
+        List<String> tables = jdbcTemplate.queryForList("SELECT event_key FROM webhooks", String.class);
+        for (String table : tables) {
+            table = table+"_pid";
+            writeQueue.createQueue(table);
+            startWorker(table);
+        }
+    }
+
     public void startWorker(String tableName) {
         workerPools.putIfAbsent(tableName, Executors.newFixedThreadPool(5));
 
@@ -37,6 +49,8 @@ public class SQLiteWriteWorker {
             while (true) {
                 try {
                     AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
+                    if (jsonMsg == null)
+                        continue;
                     saveToDatabase(tableName, jsonMsg.getValue());
                     System.out.println("Left " +tableName + "messages "+ writeQueue.getQueueSize(tableName));
                 } catch (InterruptedException e) {

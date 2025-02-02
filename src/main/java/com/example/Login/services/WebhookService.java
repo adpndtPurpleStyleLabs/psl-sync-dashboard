@@ -31,7 +31,7 @@ public class WebhookService {
         commonDao.createATable(webhook.getEventKey());
         commonDao.createAPidTable(webhook.getEventKey());
         queueService.createQueue(eventName+ "_pid");
-        sqLiteWriteWorker.startWorker(eventName+ "_pid");
+        sqLiteWriteWorker.startWorker(eventKey+ "_pid");
         return webhookRepository.save(webhook);
     }
 
