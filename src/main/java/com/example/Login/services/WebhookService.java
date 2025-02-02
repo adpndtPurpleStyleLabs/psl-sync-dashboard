@@ -64,7 +64,7 @@ public class WebhookService {
         return new CounterDto(formatter.format(commonDao.getLiveSyncProductCount(tableName, rate, liveRateQuery)),
                 formatter.format(commonDao.getDayProductCountWithStatus(tableName, "PASSED")),
                 formatter.format(commonDao.getDayProductCountWithStatus(tableName, "FAILED"))
-                , formatter.format(queueService.getQueueSize(tableName+ "_pid",)));
+                , formatter.format(queueService.getQueueSize(tableName+ "_pid")));
     }
 
     public List<DayWiseCountDto> getLastDayData(String tableName) {
