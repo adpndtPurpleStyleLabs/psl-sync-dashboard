@@ -4,6 +4,7 @@ import com.example.Login.Dao.CommonDao;
 import com.example.Login.dto.*;
 import com.example.Login.model.Webhook;
 import com.example.Login.repo.WebhookRepository;
+import com.example.Login.services.Oueue.SQLiteWriteQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,9 @@ import java.util.stream.IntStream;
 public class WebhookService {
     @Autowired
     private WebhookRepository webhookRepository;
+
+    @Autowired
+    private SQLiteWriteQueue queueService;
 
     @Autowired
     private CommonDao commonDao;
@@ -43,7 +47,8 @@ public class WebhookService {
                     a.add(product.getProductId());
                 }
                 aa.add(String.join(",", a));
-                commonDao.batchSaveProductDetails(payload.getEventKey().trim()+"_pid",chunk);
+                queueService.addToQueue(payload.getEventKey().trim()+"_pid", chunk);
+//                commonDao.batchSaveProductDetails(payload.getEventKey().trim()+"_pid",chunk);
             }
             commonDao.batchSaveProductIds(payload, aa);
             return true;
