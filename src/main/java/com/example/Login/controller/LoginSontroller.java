@@ -31,11 +31,11 @@ public class LoginSontroller {
         return "signup";
     }
 
-    @GetMapping("/index")
+    @GetMapping({"/","/index"})
     public String home(  Model model) {
         model.addAttribute("menuItems", navbarService.fetchAllNavBarMenus());
         model.addAttribute("webhookCountLastMinute", "count");
-        return "index";
+        return "welcome";
     }
 
     @GetMapping("/index/{table_name}")

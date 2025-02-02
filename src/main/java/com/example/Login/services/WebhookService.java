@@ -30,7 +30,7 @@ public class WebhookService {
         Webhook webhook = new Webhook(eventName, eventKey);
         commonDao.createATable(webhook.getEventKey());
         commonDao.createAPidTable(webhook.getEventKey());
-        queueService.createQueue(eventName+ "_pid");
+        queueService.createQueue(eventKey+ "_pid");
         sqLiteWriteWorker.startWorker(eventKey+ "_pid");
         return webhookRepository.save(webhook);
     }
@@ -52,7 +52,6 @@ public class WebhookService {
             commonDao.batchSaveProductIds(payload, aa);
             return true;
         } catch (Exception e) {
-            System.err.println("Webhook call failed: " + e.getMessage());
             return false;
         }
     }

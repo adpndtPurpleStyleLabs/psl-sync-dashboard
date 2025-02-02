@@ -41,7 +41,6 @@ public class SQLiteWriteWorker {
         for (int i = 0; i < 5; i++) {
             submitWorkerTask(tableName);
         }
-        System.out.println(" 5 Workers Started for Table: " + tableName);
     }
 
     private void submitWorkerTask(String tableName) {
@@ -53,14 +52,11 @@ public class SQLiteWriteWorker {
                         continue;
 
                     saveToDatabase(tableName, jsonMsg.getValue());
-                    System.out.println("Left " +tableName + "messages "+ writeQueue.getQueueSize(tableName));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    System.out.println("Worker thread interrupted, restarting...");
                     submitWorkerTask(tableName);
                     break;
                 } catch (Exception e) {
-                    System.out.println(" Error in saveToDatabase: " + e.getMessage() + e.getStackTrace());
                     e.printStackTrace();
                 }
             }
@@ -80,15 +76,12 @@ public class SQLiteWriteWorker {
                 return;
             } catch (Exception e) {
                 if (e.getMessage().contains("database is locked")) {
-                    System.err.println(" SQLite Lock Error - Retrying...");
                     try { Thread.sleep(500); } catch (InterruptedException ignored) {}
                 } else {
-                    System.err.println(" Insertion Failed: " + e.getMessage());
                 }
             }
         try {
             writeQueue.addToQueue(tableName, productInfoBulk);
-            System.err.println("Data Re-added to Queue for Retry: " + tableName);
         } catch (InterruptedException ignored) {}
     }
 }

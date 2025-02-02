@@ -24,7 +24,7 @@ public class SQLiteWriteQueue {
 
 
     public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException  {
-       if(null !=queueMap.get(tableName).peek())
+       if(null != queueMap.get(tableName).peek())
             return queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).take();
         return null;
     }
@@ -33,7 +33,6 @@ public class SQLiteWriteQueue {
         try{
             return queueMap.get(tableName).size();
         }catch (Exception ex){
-            System.out.println("Error while getting the queue size" + ex.getMessage());
             return 0;
         }
     }
