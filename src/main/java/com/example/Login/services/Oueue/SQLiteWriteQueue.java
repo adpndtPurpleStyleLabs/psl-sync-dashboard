@@ -14,16 +14,17 @@ public class SQLiteWriteQueue {
     private final ConcurrentHashMap<String, BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>>> queueMap = new ConcurrentHashMap<>();
 
     public void createQueue(String tableName) {
-        queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>>());
+        queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<>()); // Ensure queue exists
     }
 
     public void addToQueue(String tableName, List<ProductInfo> productInfo) throws InterruptedException {
-        queueMap.get(tableName).put(new AbstractMap.SimpleEntry<>(tableName, productInfo));
+        AbstractMap.SimpleEntry<String, List<ProductInfo>> data = new AbstractMap.SimpleEntry<>(tableName, productInfo);
+        queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).put(data);
     }
 
 
     public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException  {
-        return queueMap.get(tableName).take();
+        return queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).take();
     }
 
     public int getQueueSize(String tableName) {
