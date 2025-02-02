@@ -44,7 +44,7 @@ public class WebhookService {
                     a.add(product.getProductId());
                     commonDao.saveProductDetails(payload.getEventKey().trim()+"_pid",product);
                 }
-                commonDao.saveProductIds(payload, a.stream().toString(), a.size());
+                commonDao.saveProductIds(payload, String.join(",", a), a.size());
             }
             return true;
         } catch (Exception e) {
