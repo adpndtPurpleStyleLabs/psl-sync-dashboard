@@ -14,7 +14,7 @@ public class SQLiteWriteQueue {
     private final ConcurrentHashMap<String, BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>>> queueMap = new ConcurrentHashMap<>();
 
     public void createQueue(String tableName) {
-        queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<>());
+        queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>>());
     }
 
     public void addToQueue(String tableName, List<ProductInfo> productInfo) throws InterruptedException {
