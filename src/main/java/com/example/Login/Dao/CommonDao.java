@@ -190,22 +190,40 @@ public class CommonDao {
     }
 
     public void batchSaveProductDetails(String tableName, List<ProductInfo> productInfoList) {
-        // SQL for batch insert or update
         String sql = """
-            INSERT INTO @tableName (id, jsonData, receivedAt)
-            VALUES (?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET 
-                jsonData = excluded.jsonData,
-                receivedAt = excluded.receivedAt;
-        """;
+        INSERT INTO @tableName (id, jsonData, receivedAt)
+        VALUES (?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET 
+            jsonData = excluded.jsonData,
+            receivedAt = excluded.receivedAt;
+    """;
         sql = sql.replaceAll("@tableName", tableName);
 
-        jdbcTemplate.batchUpdate(sql, productInfoList, productInfoList.size(), (ps, productInfo) -> {
-            ps.setString(1, productInfo.getProductId());
-            ps.setString(2, productInfo.getProductDetails());
-            ps.setTimestamp(3, Timestamp.valueOf(productInfo.getReceivedAt()));
-        });
+        jdbcTemplate.execute("PRAGMA journal_mode = WAL;");
+        jdbcTemplate.execute("PRAGMA busy_timeout = 5000;");
+
+        int batchSize = 2; // Reduce batch size to prevent locking
+
+        for (int i = 0; i < productInfoList.size(); i += batchSize) {
+            List<ProductInfo> batch = productInfoList.subList(i, Math.min(i + batchSize, productInfoList.size()));
+
+            jdbcTemplate.execute("BEGIN TRANSACTION;");
+            try {
+                jdbcTemplate.batchUpdate(sql, batch, batch.size(), (ps, productInfo) -> {
+                    ps.setString(1, productInfo.getProductId());
+                    ps.setString(2, productInfo.getProductDetails());
+                    ps.setTimestamp(3, Timestamp.valueOf(productInfo.getReceivedAt()));
+                });
+                jdbcTemplate.execute("COMMIT;");
+            } catch (Exception e) {
+                jdbcTemplate.execute("ROLLBACK;");
+                throw e;
+            }
+
+            try { Thread.sleep(100); } catch (InterruptedException ignored) {} // Small pause to release locks
+        }
     }
+
 
     public void deleteWebhook(String eventKey) {
         jdbcTemplate.execute(" DELETE FROM webhooks WHERE event_key = '" + eventKey.trim() + "'");
