@@ -1,6 +1,7 @@
 package com.example.Login.Dao;
 
 import com.example.Login.dto.DayWiseCountDto;
+import com.example.Login.dto.ProductInfo;
 import com.example.Login.dto.SearchDto;
 import com.example.Login.dto.WebhookApiPayload;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 @Service
@@ -26,6 +28,17 @@ public class CommonDao {
                 ");";
         jdbcTemplate.execute(sql);
     }
+    public void createAPidTable(String tableName) {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS @tableName (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                jsonData TEXT NOT NULL,
+                receivedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """;
+        sql = sql.replace("@tableName", tableName+"_pid");
+        jdbcTemplate.execute(sql);
+    }
 
     public Integer getLiveSyncProductCount(String tableName, String rate, String rateTime) {
         String sql = """
@@ -37,8 +50,8 @@ public class CommonDao {
         sql = sql.replaceAll("@tableName", tableName);
         sql = sql.replaceAll("@rate", rate);
         sql = sql.replaceAll("@time", rateTime);
-        return jdbcTemplate.queryForObject(sql, Integer.class);
 
+        return jdbcTemplate.queryForObject(sql, Integer.class);
     }
 
     public Integer getDayProductCountWithStatus(String tableName, String status) {
@@ -48,7 +61,7 @@ public class CommonDao {
                 FROM @tableName
                     WHERE
                 DATE(received_at, 'localtime') = DATE('now', 'localtime')
-                AND event_status =  '@status'
+                    AND event_status =  '@status'
                 """;
         sql = sql.replaceAll("@tableName", tableName);
         sql = sql.replaceAll("@status", status);
@@ -142,13 +155,40 @@ public class CommonDao {
         return eventKey.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase();
     }
 
-    public void triggerWebhook(WebhookApiPayload payload, String productIdsString, long lengthOfProductIds) {
+    public void saveProductIds(WebhookApiPayload payload, String productIdsString, long lengthOfProductIds) {
         String insertQuery = "INSERT INTO " + sanitizeTableName(payload.getEventKey()) + " (event_status, payload, count) VALUES ('" + payload.getEventStatus() + "', '" + productIdsString + "', " + lengthOfProductIds + ");";
         jdbcTemplate.update(insertQuery);
+    }
+
+    public void saveProductDetails(String tableName,ProductInfo productInfo) {
+        String sql = """
+            INSERT INTO @tableName (id, jsonData, receivedAt)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET 
+                jsonData = excluded.jsonData,
+                receivedAt = excluded.receivedAt;
+        """;
+
+        sql = sql.replaceAll("@tableName", tableName);
+
+        jdbcTemplate.update(sql,
+                productInfo.getProductId(),
+                productInfo.getProductDetails(),
+                Timestamp.valueOf(productInfo.getReceivedAt()) // Convert LocalDateTime to SQL Timestamp
+        );
+
     }
 
     public void deleteWebhook(String eventKey) {
         jdbcTemplate.execute(" DELETE FROM webhooks WHERE event_key = '" + eventKey.trim() + "'");
         jdbcTemplate.execute("DROP TABLE IF EXISTS " + eventKey.trim());
+        jdbcTemplate.execute("DROP TABLE IF EXISTS " + eventKey.trim()+ "_pid");
+    }
+
+    public String fetchProductDetails(String tableName, String productId) {
+        String sql = "select jsonData  from @tableName where id = @productId ";
+        sql = sql.replaceAll("@tableName", tableName+"_pid");
+        sql = sql.replaceAll("@productId", productId);
+       return jdbcTemplate.queryForObject(sql, String.class);
     }
 }

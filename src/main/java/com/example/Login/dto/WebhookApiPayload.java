@@ -8,14 +8,16 @@ import java.util.List;
 public class WebhookApiPayload {
     private String eventKey;
     private Status eventStatus;
-    private ArrayList<Integer> productIds;
+    private List<ProductInfo> productInfo;
+    private List<String> productIds;
 
     public WebhookApiPayload() {
     }
 
-    public WebhookApiPayload(String eventKey, Status eventStatus, ArrayList<Integer> productIds) {
+    public WebhookApiPayload(String eventKey, Status eventStatus, ArrayList<ProductInfo> productInfo, List<String> productIds) {
         this.eventKey = eventKey;
         this.eventStatus = eventStatus;
+        this.productInfo = productInfo;
         this.productIds = productIds;
     }
 
@@ -35,11 +37,19 @@ public class WebhookApiPayload {
         this.eventStatus = eventStatus;
     }
 
-    public List<Integer> getProductId() {
+    public List<ProductInfo> getProductInfo() {
+        return productInfo;
+    }
+
+    public void setProductInfo(List<ProductInfo> productInfo) {
+        this.productInfo = productInfo;
+    }
+
+    public List<String> getProductIds() {
         return productIds;
     }
 
-    public void setProductId(ArrayList<Integer> productIds) {
+    public void setProductIds(List<String> productIds) {
         this.productIds = productIds;
     }
 }

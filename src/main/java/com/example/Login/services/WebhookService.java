@@ -23,6 +23,7 @@ public class WebhookService {
     public Webhook registerWebhook(String eventName, String eventKey) {
         Webhook webhook = new Webhook(eventName, eventKey);
         commonDao.createATable(webhook.getEventKey());
+        commonDao.createAPidTable(webhook.getEventKey());
         return webhookRepository.save(webhook);
     }
 
@@ -32,19 +33,18 @@ public class WebhookService {
 
     public boolean triggerWebhook(WebhookApiPayload payload) {
         try {
-            List<Integer> productIds = payload.getProductId();
+            List<String> productIds = payload.getProductIds();
             int chunkSize = 5;
 
-            List<List<Integer>> chunks = IntStream.range(0, (productIds.size() + chunkSize - 1) / chunkSize)
-                    .mapToObj(i -> productIds.subList(i * chunkSize, Math.min((i + 1) * chunkSize, productIds.size())))
-                    .collect(Collectors.toList());
+            List<List<ProductInfo>> chunks = chunkList(payload.getProductInfo(), chunkSize);
 
-            for (List<Integer> chunk : chunks) {
-                long lengthOfChunk = chunk.size();
-                String productIdsString = chunk.stream()
-                        .map(String::valueOf)
-                        .collect(Collectors.joining(","));
-                commonDao.triggerWebhook(payload, productIdsString, lengthOfChunk);
+            for (List<ProductInfo> chunk : chunks) {
+                List<String> a = new ArrayList<>();
+                for (ProductInfo product : chunk) {
+                    a.add(product.getProductId());
+                    commonDao.saveProductDetails(payload.getEventKey().trim()+"_pid",product);
+                }
+                commonDao.saveProductIds(payload, a.stream().toString(), a.size());
             }
             return true;
         } catch (Exception e) {
@@ -80,5 +80,17 @@ public class WebhookService {
         } catch (Exception ex){
             return false;
         }
+    }
+
+    public static <T> List<List<T>> chunkList(List<T> list, int chunkSize) {
+        List<List<T>> chunks = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += chunkSize) {
+            chunks.add(list.subList(i, Math.min(list.size(), i + chunkSize)));
+        }
+        return chunks;
+    }
+
+    public String getProductDetails(String tableName, String productId) {
+        return commonDao.fetchProductDetails(tableName, productId);
     }
 }
