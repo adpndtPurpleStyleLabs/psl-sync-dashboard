@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class CommonDao {
@@ -156,70 +155,56 @@ public class CommonDao {
         return eventKey.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase();
     }
 
+    public void saveProductIds(WebhookApiPayload payload, String productIdsString, long lengthOfProductIds) {
+        String insertQuery = "INSERT INTO " + sanitizeTableName(payload.getEventKey()) + " (event_status, payload, count) VALUES ('" + payload.getEventStatus() + "', '" + productIdsString + "', " + lengthOfProductIds + ");";
+        jdbcTemplate.update(insertQuery);
+    }
+
     public void batchSaveProductIds(WebhookApiPayload payload, List<String> productIdChunks) {
         String tableName = sanitizeTableName(payload.getEventKey());
         String sql = "INSERT INTO " + tableName + " (event_status, payload, count) VALUES (?, ?, ?)";
 
-        int retries = 5;
-        for (int i = 0; i < retries; i++) {
-            try {
-                jdbcTemplate.batchUpdate(sql, productIdChunks, productIdChunks.size(), (ps, productIdsString) -> {
-                    ps.setString(1, payload.getEventStatus().toString());
-                    ps.setString(2, productIdsString);
-                    ps.setLong(3, productIdsString.split(",").length);
-                });
-                return;
+        jdbcTemplate.batchUpdate(sql, productIdChunks, productIdChunks.size(), (ps, productIdsString) -> {
+            ps.setString(1, payload.getEventStatus().toString());
+            ps.setString(2, productIdsString);
+            ps.setLong(3, productIdsString.split(",").length); // Count the number of IDs
+        });
+    }
 
-            } catch (Exception e) {
-                if (e.getMessage().contains("SQLITE_BUSY")) {
-                    System.out.println("Database is locked, retrying... " + (i + 1));
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(500 * (i + 1));
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                } else {
-                    e.printStackTrace();
-                    break;
-                }
-            }
-        }
+    public void saveProductDetails(String tableName,ProductInfo productInfo) {
+        String sql = """
+            INSERT INTO @tableName (id, jsonData, receivedAt)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET 
+                jsonData = excluded.jsonData,
+                receivedAt = excluded.receivedAt;
+        """;
+
+        sql = sql.replaceAll("@tableName", tableName);
+
+        jdbcTemplate.update(sql,
+                productInfo.getProductId(),
+                productInfo.getProductDetails(),
+                Timestamp.valueOf(productInfo.getReceivedAt()) // Convert LocalDateTime to SQL Timestamp
+        );
     }
 
     public void batchSaveProductDetails(String tableName, List<ProductInfo> productInfoList) {
         // SQL for batch insert or update
         String sql = """
-                    INSERT INTO @tableName (id, jsonData, receivedAt)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET 
-                        jsonData = excluded.jsonData,
-                        receivedAt = excluded.receivedAt;
-                """;
+            INSERT INTO @tableName (id, jsonData, receivedAt)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET 
+                jsonData = excluded.jsonData,
+                receivedAt = excluded.receivedAt;
+        """;
         sql = sql.replaceAll("@tableName", tableName);
 
-        int retries = 5;
-        for (int i = 0; i < retries; i++) {
-            try {
-                jdbcTemplate.batchUpdate(sql, productInfoList, productInfoList.size(), (ps, productInfo) -> {
-                    ps.setString(1, productInfo.getProductId());
-                    ps.setString(2, productInfo.getProductDetails());
-                    ps.setTimestamp(3, Timestamp.valueOf(productInfo.getReceivedAt()));
-                });
-                return; // Exit loop on success
-            } catch (Exception e) {
-                if (e.getMessage().contains("SQLITE_BUSY")) {
-                    System.out.println("Database is locked, retrying... " + (i + 1));
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(500 * (i + 1));
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                } else {
-                    e.printStackTrace();
-                    break;
-                }
-            }
-        }
+        jdbcTemplate.batchUpdate(sql, productInfoList, productInfoList.size(), (ps, productInfo) -> {
+            ps.setString(1, productInfo.getProductId());
+            ps.setString(2, productInfo.getProductDetails());
+            ps.setTimestamp(3, Timestamp.valueOf(productInfo.getReceivedAt()));
+        });
     }
 
     public void deleteWebhook(String eventKey) {
