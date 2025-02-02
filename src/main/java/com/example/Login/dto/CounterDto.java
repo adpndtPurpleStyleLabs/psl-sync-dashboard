@@ -8,13 +8,15 @@ public class CounterDto {
     public String liveCounter;
     public String passedCount;
     public String failedCount;
+    public String backLogCount;
 
     public CounterDto(){}
 
-    public CounterDto(String liveCounter, String passedCount, String failedCount) {
+    public CounterDto(String liveCounter, String passedCount, String failedCount, String backLogCount) {
         this.liveCounter = liveCounter;
         this.passedCount = passedCount;
         this.failedCount = failedCount;
+        this.backLogCount = backLogCount;
     }
 
     public String getLiveCounter() {
@@ -39,5 +41,13 @@ public class CounterDto {
 
     public void setFailedCount(String failedCount) {
         this.failedCount = failedCount;
+    }
+
+    public String getBackLogCount() {
+        return backLogCount;
+    }
+
+    public void setBackLogCount(String backLogCount) {
+        this.backLogCount = backLogCount;
     }
 }

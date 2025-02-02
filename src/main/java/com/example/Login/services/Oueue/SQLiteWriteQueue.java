@@ -6,25 +6,32 @@ import org.springframework.stereotype.Service;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Service
 public class SQLiteWriteQueue {
-    private final BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>> queue = new LinkedBlockingQueue<>();
+    private final ConcurrentHashMap<String, BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>>> queueMap = new ConcurrentHashMap<>();
 
-    public void addToQueue(String tableName, List<ProductInfo> productInfo) {
-        try {
-            queue.put(new AbstractMap.SimpleEntry<>(tableName, productInfo));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+    public void createQueue(String tableName) {
+        queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<>());
+    }
+
+    public void addToQueue(String tableName, List<ProductInfo> productInfo) throws InterruptedException {
+        queueMap.get(tableName).put(new AbstractMap.SimpleEntry<>(tableName, productInfo));
+    }
+
+
+    public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException  {
+        return queueMap.get(tableName).take();
+    }
+
+    public int getQueueSize(String tableName) {
+        try{
+            return queueMap.get(tableName).size();
+        }catch (Exception ex){
+            System.out.println("Error while getting the queue size" + ex.getMessage());
+            return 0;
         }
-    }
-
-    public AbstractMap.SimpleEntry<String, List<ProductInfo>> takeFromQueue() throws InterruptedException {
-        return queue.take();
-    }
-
-    public int getQueueSize() {
-        return queue.size();
     }
 }

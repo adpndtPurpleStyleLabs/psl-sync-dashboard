@@ -51,11 +51,11 @@
         </div>
         <!-- Counters -->
         <div class="row text-center">
-            <div class="col-md-4">
-                <div class="card shadow mb-4">
+            <div class="col-md-3">
+                <div class="card shadow mb-3">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
-                            <h4 class="me-3">Live Sync:</h4>
+                            <h5 class="me-3">Live Sync:</h5>
                             <select id="timeInterval" class="form-select w-auto" onchange="updateLiveRequests()">
                                 <option value="1m" selected>Products/min</option>
                                 <option value="1s">Products/s</option>
@@ -73,20 +73,32 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card shadow mb-4">
+            <div class="col-md-3">
+                <div class="card shadow mb-3">
                     <div class="card-body">
-                        <h4>Total Products Synced:</h4>
+                        <h5>Total Products Synced:</h5>
+                        <br>
                         <span id="totalRequests" class="counter-box text-primary">0</span>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card shadow mb-4">
+            <div class="col-md-3">
+                <div class="card shadow mb-3">
                     <div class="card-body">
-                        <h4>Product Failed:</h4>
+                        <h5>Product Failed:</h5>
+                        <br>
                         <span id="failedRequests" class="counter-box text-danger">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow mb-3">
+                    <div class="card-body">
+                        <h5>Backlog Counter:</h5>
+                        <br>
+                        <span id="backLogCounter" class="counter-box text-danger">0</span>
                     </div>
                 </div>
             </div>
@@ -166,6 +178,7 @@
                 document.getElementById("totalReqLive").textContent = data.liveCounter + " /" + selectedText|| 0;
                 document.getElementById("totalRequests").textContent = data.passedCount || 0;
                 document.getElementById("failedRequests").textContent = data.failedCount || 0;
+                document.getElementById("backLogCounter").textContent = data.backLogCount || 0;
             })
             .catch(error => console.error("Error fetching counters:", error));
     }

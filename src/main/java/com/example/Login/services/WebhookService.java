@@ -5,6 +5,7 @@ import com.example.Login.dto.*;
 import com.example.Login.model.Webhook;
 import com.example.Login.repo.WebhookRepository;
 import com.example.Login.services.Oueue.SQLiteWriteQueue;
+import com.example.Login.services.QueueWorker.SQLiteWriteWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,8 @@ public class WebhookService {
 
     @Autowired
     private SQLiteWriteQueue queueService;
+    @Autowired
+    private SQLiteWriteWorker sqLiteWriteWorker;
 
     @Autowired
     private CommonDao commonDao;
@@ -29,6 +32,8 @@ public class WebhookService {
         Webhook webhook = new Webhook(eventName, eventKey);
         commonDao.createATable(webhook.getEventKey());
         commonDao.createAPidTable(webhook.getEventKey());
+        queueService.createQueue(eventName);
+        sqLiteWriteWorker.startWorker(eventName);
         return webhookRepository.save(webhook);
     }
 
@@ -62,9 +67,10 @@ public class WebhookService {
         String rate = timeRate.trim().replaceAll("\\D", "");
         String liveRateQuery = timeRate.toLowerCase().contains("m") ? "minutes" : "seconds";
         NumberFormat formatter = NumberFormat.getInstance(Locale.US);
-        return new CounterDto( formatter.format(commonDao.getLiveSyncProductCount(tableName, rate, liveRateQuery)),
+        return new CounterDto(formatter.format(commonDao.getLiveSyncProductCount(tableName, rate, liveRateQuery)),
                 formatter.format(commonDao.getDayProductCountWithStatus(tableName, "PASSED")),
-                formatter.format(commonDao.getDayProductCountWithStatus(tableName, "FAILED")));
+                formatter.format(commonDao.getDayProductCountWithStatus(tableName, "FAILED"))
+                , formatter.format(queueService.getQueueSize(tableName)));
     }
 
     public List<DayWiseCountDto> getLastDayData(String tableName) {
