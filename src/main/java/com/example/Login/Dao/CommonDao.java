@@ -160,6 +160,17 @@ public class CommonDao {
         jdbcTemplate.update(insertQuery);
     }
 
+    public void batchSaveProductIds(WebhookApiPayload payload, List<String> productIdChunks) {
+        String tableName = sanitizeTableName(payload.getEventKey());
+        String sql = "INSERT INTO " + tableName + " (event_status, payload, count) VALUES (?, ?, ?)";
+
+        jdbcTemplate.batchUpdate(sql, productIdChunks, productIdChunks.size(), (ps, productIdsString) -> {
+            ps.setString(1, payload.getEventStatus().toString());
+            ps.setString(2, productIdsString);
+            ps.setLong(3, productIdsString.split(",").length); // Count the number of IDs
+        });
+    }
+
     public void saveProductDetails(String tableName,ProductInfo productInfo) {
         String sql = """
             INSERT INTO @tableName (id, jsonData, receivedAt)
@@ -176,7 +187,24 @@ public class CommonDao {
                 productInfo.getProductDetails(),
                 Timestamp.valueOf(productInfo.getReceivedAt()) // Convert LocalDateTime to SQL Timestamp
         );
+    }
 
+    public void batchSaveProductDetails(String tableName, List<ProductInfo> productInfoList) {
+        // SQL for batch insert or update
+        String sql = """
+            INSERT INTO @tableName (id, jsonData, receivedAt)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET 
+                jsonData = excluded.jsonData,
+                receivedAt = excluded.receivedAt;
+        """;
+        sql = sql.replaceAll("@tableName", tableName);
+
+        jdbcTemplate.batchUpdate(sql, productInfoList, productInfoList.size(), (ps, productInfo) -> {
+            ps.setString(1, productInfo.getProductId());
+            ps.setString(2, productInfo.getProductDetails());
+            ps.setTimestamp(3, Timestamp.valueOf(productInfo.getReceivedAt()));
+        });
     }
 
     public void deleteWebhook(String eventKey) {

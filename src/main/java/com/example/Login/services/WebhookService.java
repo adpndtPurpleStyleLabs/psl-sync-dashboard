@@ -33,19 +33,18 @@ public class WebhookService {
 
     public boolean triggerWebhook(WebhookApiPayload payload) {
         try {
-            List<String> productIds = payload.getProductIds();
             int chunkSize = 5;
-
             List<List<ProductInfo>> chunks = chunkList(payload.getProductInfo(), chunkSize);
-
+            List<String> aa = new ArrayList<>();
             for (List<ProductInfo> chunk : chunks) {
                 List<String> a = new ArrayList<>();
                 for (ProductInfo product : chunk) {
                     a.add(product.getProductId());
-                    commonDao.saveProductDetails(payload.getEventKey().trim()+"_pid",product);
                 }
-                commonDao.saveProductIds(payload, String.join(",", a), a.size());
+                aa.add(String.join(",", a));
+                commonDao.batchSaveProductDetails(payload.getEventKey().trim()+"_pid",chunk);
             }
+            commonDao.batchSaveProductIds(payload, aa);
             return true;
         } catch (Exception e) {
             System.err.println("Webhook call failed: " + e.getMessage());
