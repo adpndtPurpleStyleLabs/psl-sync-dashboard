@@ -49,7 +49,7 @@ public class SQLiteWriteWorker {
             while (true) {
                 try {
                     AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
-                    if (jsonMsg == null)
+                    if (null == jsonMsg)
                         continue;
 
                     saveToDatabase(tableName, jsonMsg.getValue());
