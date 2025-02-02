@@ -188,7 +188,7 @@ public class CommonDao {
     public String fetchProductDetails(String tableName, String productId) {
         String sql = "select jsonData  from @tableName where id = @productId ";
         sql = sql.replaceAll("@tableName", tableName+"_pid");
-        sql = sql.replaceAll("@productId", productId);
+        sql = sql.replaceAll("@productId", "'"+productId+"'");
        return jdbcTemplate.queryForObject(sql, String.class);
     }
 }
