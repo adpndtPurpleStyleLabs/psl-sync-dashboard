@@ -23,10 +23,8 @@ public class SQLiteWriteQueue {
     }
 
 
-    public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException  {
-       if(null != queueMap.get(tableName).peek())
-            return queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).take();
-        return null;
+    public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException {
+        return queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).take();
     }
 
     public int getQueueSize(String tableName) {
