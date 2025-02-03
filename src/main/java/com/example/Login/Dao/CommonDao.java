@@ -75,25 +75,31 @@ public class CommonDao {
                         UNION ALL
                         SELECT DATE(day, '+1 day') FROM date_series WHERE day < DATE('now')
                     )
-                    SELECT 
+                    SELECT
                         strftime('%m/%d', ds.day) AS day,
-                        COALESCE(SUM(ped.count), 0) AS total_count,  
-                        COALESCE(SUM(SUM(CASE WHEN ped.event_status = 'PASSED' THEN ped.count ELSE 0 END)) 
-                                 OVER (ORDER BY ds.day), 0) AS cumulative_passed,
-                        COALESCE(SUM(SUM(CASE WHEN ped.event_status = 'FAILED' THEN ped.count ELSE 0 END)) 
-                                 OVER (ORDER BY ds.day), 0) AS cumulative_failed
-                    FROM 
+                        COALESCE(SUM(ped.count), 0) AS total_count,
+                       \s
+                        -- Sum only PASSED events
+                        COALESCE(SUM(CASE WHEN ped.event_status = 'PASSED' THEN ped.count ELSE 0 END), 0)\s
+                        AS passed_count,
+                       \s
+                        -- Sum only FAILED events
+                        COALESCE(SUM(CASE WHEN ped.event_status = 'FAILED' THEN ped.count ELSE 0 END), 0)\s
+                        AS failed_count
+                    
+                    FROM
                         date_series ds
-                    LEFT JOIN 
-                       @tableName ped
-                    ON 
+                    LEFT JOIN
+                        vue_ai_sync ped
+                    ON
                         DATE(ped.received_at) = ds.day
-                    WHERE 
+                    WHERE
                         ds.day >= DATE('now', '-6 days')
-                    GROUP BY 
+                    GROUP BY
                         ds.day
-                    ORDER BY 
+                    ORDER BY
                         ds.day ASC;
+                    
                 """;
         sql = sql.replaceAll("@tableName", tableName);
         return jdbcTemplate.query(sql, mapDashboardStatsRow());
@@ -103,8 +109,8 @@ public class CommonDao {
     private RowMapper<DayWiseCountDto> mapDashboardStatsRow() {
         return (rs, rowNum) -> new DayWiseCountDto(
                 rs.getString("day"),
-                rs.getInt("cumulative_passed"),
-                rs.getInt("cumulative_failed")
+                rs.getInt("passed_count"),
+                rs.getInt("failed_count")
         );
     }
 

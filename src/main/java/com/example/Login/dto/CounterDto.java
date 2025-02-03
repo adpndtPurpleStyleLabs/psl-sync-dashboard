@@ -1,9 +1,5 @@
 package com.example.Login.dto;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Locale;
-
 public class CounterDto {
     public String liveCounter;
     public String passedCount;

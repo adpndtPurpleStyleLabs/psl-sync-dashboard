@@ -4,8 +4,8 @@ import com.example.Login.dto.ProductInfo;
 import com.example.Login.services.Oueue.SQLiteWriteQueue;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
@@ -23,6 +23,9 @@ public class SQLiteWriteWorker {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Value("${WORKER_COUNT}")
+    private int workerCount;
+
     private final ConcurrentHashMap<String, ExecutorService> workerPools = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -37,8 +40,7 @@ public class SQLiteWriteWorker {
 
     public void startWorker(String tableName) {
         workerPools.putIfAbsent(tableName, Executors.newFixedThreadPool(5));
-
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < workerCount; i++) {
             submitWorkerTask(tableName);
         }
     }

@@ -6,6 +6,8 @@ import com.example.Login.model.Webhook;
 import com.example.Login.repo.WebhookRepository;
 import com.example.Login.services.Oueue.SQLiteWriteQueue;
 import com.example.Login.services.QueueWorker.SQLiteWriteWorker;
+import com.example.Login.services.websocketHandler.ChartWebSocketHandler;
+import com.example.Login.services.websocketHandler.CounterWebSocketHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -47,9 +49,9 @@ public class WebhookService {
                 }
                 aa.add(String.join(",", a));
                 queueService.addToQueue(payload.getEventKey().trim()+"_pid", chunk);
-//                commonDao.batchSaveProductDetails(payload.getEventKey().trim()+"_pid",chunk);
             }
             commonDao.batchSaveProductIds(payload, aa);
+            triggerWebsocket(payload.getEventKey() ,"1min");
             return true;
         } catch (Exception e) {
             return false;
@@ -78,10 +80,10 @@ public class WebhookService {
     }
 
     public boolean removeWebhook(String eventKey) {
-        try{
+        try {
             commonDao.deleteWebhook(eventKey);
             return true;
-        } catch (Exception ex){
+        } catch (Exception ex) {
             return false;
         }
     }
@@ -96,5 +98,14 @@ public class WebhookService {
 
     public String getProductDetails(String tableName, String productId) {
         return commonDao.fetchProductDetails(tableName, productId);
+    }
+
+    private void triggerWebsocket(String tableName, String timeRate) {
+        try {
+            ChartWebSocketHandler.sendChartData(getLastDayData(tableName), tableName);
+            CounterWebSocketHandler.sendCounterData(getWebhookCountLastMinute(tableName, timeRate), tableName);
+        } catch (Exception ex) {
+            System.out.println(" " + ex.getMessage() + ex.getStackTrace());
+        }
     }
 }

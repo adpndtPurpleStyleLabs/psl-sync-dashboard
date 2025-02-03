@@ -1,6 +1,5 @@
 package com.example.Login.controller;
 
-
 import com.example.Login.model.MyAppUser;
 import com.example.Login.repo.MyAppUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
