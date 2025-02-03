@@ -115,17 +115,17 @@ public class CommonDao {
     }
 
     public List<SearchDto> getSyncedProductIds(String tableName, int page, int size) {
-        String sql = """
-                          
-                    SELECT
-                    received_at AS receivedAt,
-                    payload AS productIds,
-                    event_status As status
-                FROM
-                    @tableName
-                ORDER BY
-                    received_at DESC
-                LIMIT ? OFFSET (? - 1) * ?;
+        String sql = """       
+                  SELECT
+                      DATETIME(received_at, '+5 hours', '+30 minutes') AS receivedAt, -- Adds 5m 30s
+                      payload AS productIds,
+                      event_status AS status
+                  FROM
+                      @tableName
+                  ORDER BY
+                      received_at DESC
+                  LIMIT ? OFFSET (? - 1) * ?;
+                  ;
                 """;
         sql = sql.replaceAll("@tableName", tableName);
         return jdbcTemplate.query(sql, new Object[]{size, page, size}, mapSearchDto());
