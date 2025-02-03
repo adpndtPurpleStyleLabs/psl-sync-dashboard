@@ -134,7 +134,7 @@ public class CommonDao {
     public List<SearchDto> getSyncedProductIdsWithSearch(String tableName, int page, int size, String productId) {
         String sql = """
                 SELECT 
-                      received_at AS receivedAt, 
+                      DATETIME(received_at, '+5 hours', '+30 minutes') AS receivedAt, -- Adds 5m 30s
                       payload AS productIds,
                       event_status As status
                   FROM 
