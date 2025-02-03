@@ -54,7 +54,7 @@
                     <div class="card-body">
                         <div class="d-flex align-items-center">
                             <h5 class="me-3">Live Sync:</h5>
-                            <select id="timeInterval" class="form-select w-auto" onchange="updateLiveRequests()">
+                            <select id="timeInterval" class="form-select w-auto">
                                 <option value="1m" selected>Products/min</option>
                                 <option value="1s">Products/s</option>
                                 <option value="5s">Products/5s</option>
@@ -161,11 +161,14 @@
 <!-- JS -->
 <script>
     let currentPage = 1;
-    var baseurl = "139.99.9.42:8828";
+    // var baseurl = "139.99.9.42:8828";
+    var baseurl = "localhost:8082";
 
     fetchTableData();
+    let counterWebSocket;
 
-    document.addEventListener("DOMContentLoaded", function () {
+    function connectWebSocket() {
+        console.log("Hello");
         let selectedValue = document.getElementById("timeInterval").value;
         let selectElement = document.getElementById("timeInterval");
         let selectedText = selectElement.options[selectElement.selectedIndex].text.split("/");
@@ -174,13 +177,13 @@
         let lastSegment = pathSegments[pathSegments.length - 1] || "default"; // Use "default" if empty
         selectedText = selectedText[selectedText.length - 1];
 
-        let socket = new WebSocket(`ws://${baseurl}/counter-updates/${lastSegment}/${selectedValue}`);
+        counterWebSocket = new WebSocket(`ws://${baseurl}/counter-updates/${lastSegment}/${selectedValue}`);
 
-        socket.onopen = function () {
+        counterWebSocket.onopen = function () {
             console.log("✅ WebSocket connected for webhook stats!");
         };
 
-        socket.onmessage = function (event) {
+        counterWebSocket.onmessage = function (event) {
             let data = JSON.parse(event.data);
             console.log("📩 Received WebSocket counter data:", data);
             document.getElementById("totalReqLive").textContent = (data.liveCounter || 0) + " /" + selectedText;
@@ -189,18 +192,21 @@
             document.getElementById("backLogCounter").textContent = data.backLogCount || 0;
         };
 
-        window.addEventListener("beforeunload", function () {
-            console.log("🔴 Closing WebSocket due to page unload.");
-            socket.close();
-        });
-
-        socket.onclose = function () {
+        counterWebSocket.onclose = function () {
             console.log("🔴 WebSocket disconnected.");
         };
 
-        socket.onerror = function (error) {
+        counterWebSocket.onerror = function (error) {
             console.error("⚠️ WebSocket Error:", error);
         };
+    }
+    connectWebSocket();
+    document.getElementById("timeInterval").addEventListener("change", function () {
+        if (counterWebSocket){
+            counterWebSocket.close();
+            console.log(`🔄 Update rate changed to: ms`);
+        }
+        connectWebSocket();
     });
 
 

@@ -27,7 +27,6 @@ public class ChartDataScheduler {
             try{
                 String tableName = x.getEventKey();
                 ChartWebSocketHandler.sendChartData(webhookService.getLastDayData(tableName), tableName);
-                CounterWebSocketHandler.sendCounterData( webhookService.getWebhookCountLastMinute(tableName, "1m"), tableName);
             } catch (Exception ex){
                 System.out.println(ex.getMessage()+  ex.getStackTrace());
             }

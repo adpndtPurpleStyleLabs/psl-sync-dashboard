@@ -103,7 +103,6 @@ public class WebhookService {
     private void triggerWebsocket(String tableName, String timeRate) {
         try {
             ChartWebSocketHandler.sendChartData(getLastDayData(tableName), tableName);
-            CounterWebSocketHandler.sendCounterData(getWebhookCountLastMinute(tableName, timeRate), tableName);
         } catch (Exception ex) {
             System.out.println(" " + ex.getMessage() + ex.getStackTrace());
         }

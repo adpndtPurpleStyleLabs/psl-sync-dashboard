@@ -1,6 +1,6 @@
 package com.example.Login.services.websocketHandler;
 
-import com.example.Login.dto.CounterWebSocketDto;
+import com.example.Login.services.WebhookService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -10,27 +10,38 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
 
 public class CounterWebSocketHandler extends TextWebSocketHandler {
-    private static final ConcurrentHashMap<String, CounterWebSocketDto> sessionMap = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<WebSocketSession, ScheduledFuture<?>> sessionTasks = new ConcurrentHashMap<>();
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public final WebhookService webhookService;
+
+    public CounterWebSocketHandler(WebhookService webhookService) {
+        this.webhookService = webhookService;
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         Map.Entry<String, String> info = extractLastSegment(session);
         String timeRate = info.getValue();
         String tableName = info.getKey();
+        int rate = Integer.valueOf(timeRate.trim().replaceAll("\\D", ""));
+//        rate = timeRate.toLowerCase().contains("m") ? rate * 60 : rate;
+        rate = timeRate.toLowerCase().contains("m") ? 5 : 1;
 
-        sessionMap.putIfAbsent(tableName,
-                new CounterWebSocketDto(
-                        tableName,
-                        timeRate,
-                        new CopyOnWriteArrayList<>()
-                ));
-        CounterWebSocketDto counterWebSocketDto = sessionMap.get(tableName);
-        counterWebSocketDto.getSession().add(session);
+        ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
+            try {
+                String jsonData = objectMapper.writeValueAsString(webhookService.getWebhookCountLastMinute(tableName.trim(), timeRate.trim()));
+                session.sendMessage(new TextMessage(jsonData));
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
+        }, 0, rate, TimeUnit.SECONDS);
+        sessionTasks.put(session, task);
     }
 
     private Map.Entry<String, String> extractLastSegment(WebSocketSession session) {
@@ -43,20 +54,10 @@ public class CounterWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        Map.Entry<String, String> info = extractLastSegment(session);
-        String timeRate = info.getValue();
-        String tableName = info.getKey();
-        CounterWebSocketDto counterWebSocketDto = sessionMap.get(tableName);
-        counterWebSocketDto.getSession().remove(session);
-    }
-
-    public static void sendCounterData(Object jsonData, String tableName) throws IOException {
-        if (sessionMap.containsKey(tableName)) {
-            for (WebSocketSession session : sessionMap.get(tableName).getSession()) {
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(jsonData)));
-                }
-            }
+        if (sessionTasks.containsKey(session)) {
+            sessionTasks.get(session).cancel(true);
+            sessionTasks.remove(session);
+            System.out.println("🔴 WebSocket closed for session.");
         }
     }
 }
