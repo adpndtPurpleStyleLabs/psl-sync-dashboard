@@ -161,6 +161,7 @@
 <!-- JS -->
 <script>
     let currentPage = 1;
+    var baseurl = "http://139.99.9.42:8828/";
 
     document.addEventListener("DOMContentLoaded", function () {
         let selectedValue = document.getElementById("timeInterval").value;
@@ -171,7 +172,7 @@
         let lastSegment = pathSegments[pathSegments.length - 1] || "default"; // Use "default" if empty
         selectedText = selectedText[selectedText.length - 1];
 
-        let socket = new WebSocket(`ws://localhost:8082/counter-updates/${lastSegment}/${selectedValue}`);
+        let socket = new WebSocket(`ws://${baseurl}/counter-updates/${lastSegment}/${selectedValue}`);
 
         socket.onopen = function () {
             console.log("✅ WebSocket connected for webhook stats!");
@@ -270,7 +271,7 @@
         let pathSegments = window.location.pathname.split("/");
         let lastSegment = pathSegments[pathSegments.length - 1] || "default"; // Use "default" if empty
 
-        const socket = new WebSocket(`ws://localhost:8082/chart-updates/${lastSegment}`);
+        const socket = new WebSocket(`ws://${baseurl}/chart-updates/${lastSegment}`);
 
         socket.onopen = function () {
             console.log(`✅ WebSocket connected to: ws://localhost:8080/chart-updates/${lastSegment}`);
