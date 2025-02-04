@@ -47,23 +47,36 @@ public class SQLiteWriteWorker {
 
     private void submitWorkerTask(String tableName) {
         workerPools.get(tableName).submit(() -> {
-            while (true) {
-                try {
-                    AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
-                    if (null == jsonMsg)
-                        continue;
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
+                        if (jsonMsg == null) {
+                            Thread.sleep(100);
+                            continue;
+                        }
 
-                    saveToDatabase(tableName, jsonMsg.getValue());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    submitWorkerTask(tableName);
-                    break;
-                } catch (Exception e) {
-                    e.printStackTrace();
+                        saveToDatabase(tableName, jsonMsg.getValue());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
+            } finally {
+                restartWorkerIfNeeded(tableName);
             }
         });
     }
+
+    private void restartWorkerIfNeeded(String tableName) {
+        workerPools.get(tableName).submit(() -> {
+            System.out.println("Restarting worker for table: " + tableName);
+            submitWorkerTask(tableName);
+        });
+    }
+
 
     private void saveToDatabase(String tableName, List<ProductInfo> productInfoBulk) {
             try {
