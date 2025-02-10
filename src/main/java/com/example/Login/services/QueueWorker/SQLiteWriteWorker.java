@@ -52,7 +52,7 @@ public class SQLiteWriteWorker {
                     try {
                         AbstractMap.SimpleEntry<String, List<ProductInfo>> jsonMsg = writeQueue.getMessageFromQueue(tableName);
                         if (jsonMsg == null) {
-                            Thread.sleep(100);
+                            Thread.sleep(999);
                             continue;
                         }
 

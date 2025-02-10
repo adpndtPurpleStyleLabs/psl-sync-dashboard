@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SQLiteWriteQueue {
@@ -18,13 +19,22 @@ public class SQLiteWriteQueue {
     }
 
     public void addToQueue(String tableName, List<ProductInfo> productInfo) throws InterruptedException {
+        if (!queueMap.containsValue(tableName)){
+            createQueue(tableName);
+        }
         AbstractMap.SimpleEntry<String, List<ProductInfo>> data = new AbstractMap.SimpleEntry<>(tableName, productInfo);
         queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).put(data);
     }
 
 
     public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException  {
-        return queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).take();
+        AbstractMap.SimpleEntry<String, List<ProductInfo>> entry = queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).poll(1, TimeUnit.SECONDS);
+        if(null == entry){
+            BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>> a = queueMap.get(tableName);
+            a = null;
+            queueMap.remove(tableName);
+        }
+        return null;
     }
 
     public int getQueueSize(String tableName) {
