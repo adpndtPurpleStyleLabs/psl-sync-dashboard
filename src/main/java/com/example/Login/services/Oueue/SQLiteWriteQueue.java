@@ -16,6 +16,7 @@ public class SQLiteWriteQueue {
 
     public void createQueue(String tableName) {
         queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<>());
+        System.out.println(tableName + "added to queue");
     }
 
     public void addToQueue(String tableName, List<ProductInfo> productInfo) throws InterruptedException {
@@ -33,6 +34,7 @@ public class SQLiteWriteQueue {
             BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>> a = queueMap.get(tableName);
             a = null;
             queueMap.remove(tableName);
+            System.out.println(tableName + "removed from queue because empty");
         }
         return null;
     }
