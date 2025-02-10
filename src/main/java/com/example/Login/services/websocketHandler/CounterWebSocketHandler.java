@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 public class CounterWebSocketHandler extends TextWebSocketHandler {
-    private static final ConcurrentHashMap<WebSocketSession, ScheduledFuture<?>> sessionTasks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<WebSocketSession, ScheduledFuture<?>> sessionTasks = new ConcurrentHashMap<>();
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 

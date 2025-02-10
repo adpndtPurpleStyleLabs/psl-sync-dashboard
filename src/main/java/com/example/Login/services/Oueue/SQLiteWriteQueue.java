@@ -16,11 +16,11 @@ public class SQLiteWriteQueue {
 
     public void createQueue(String tableName) {
         queueMap.putIfAbsent(tableName, new LinkedBlockingQueue<>());
-        System.out.println(tableName + "added to queue");
+        System.out.println(tableName + " added to queue");
     }
 
     public void addToQueue(String tableName, List<ProductInfo> productInfo) throws InterruptedException {
-        if (!queueMap.containsValue(tableName)){
+        if (!queueMap.containsKey(tableName)){
             createQueue(tableName);
         }
         AbstractMap.SimpleEntry<String, List<ProductInfo>> data = new AbstractMap.SimpleEntry<>(tableName, productInfo);
@@ -29,7 +29,7 @@ public class SQLiteWriteQueue {
 
 
     public AbstractMap.SimpleEntry<String, List<ProductInfo>> getMessageFromQueue(String tableName) throws InterruptedException  {
-        if (!queueMap.containsValue(tableName)){
+        if (!queueMap.containsKey(tableName)){
             return null;
         }
         AbstractMap.SimpleEntry<String, List<ProductInfo>> entry = queueMap.computeIfAbsent(tableName, k -> new LinkedBlockingQueue<>()).poll(1, TimeUnit.SECONDS);
@@ -37,7 +37,7 @@ public class SQLiteWriteQueue {
             BlockingQueue<AbstractMap.SimpleEntry<String, List<ProductInfo>>> a = queueMap.get(tableName);
             a = null;
             queueMap.remove(tableName);
-            System.out.println(tableName + "removed from queue because empty");
+            System.out.println(tableName + " removed from queue because empty");
         }
         return null;
     }
